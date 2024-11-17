@@ -13,8 +13,7 @@ export function useYjsUsers<S>(
 
 export function useYjsUsers<S>(
   awareness: Awareness,
-  selector: (s: YjsUsers) => S = (s) => s as S,
-  compare: (a: S, b: S) => boolean = Object.is
+  selector: (s: YjsUsers) => S = (s) => s as S
 ) {
   const stateRef = useRef<YjsUsers>();
 
