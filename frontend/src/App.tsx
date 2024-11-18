@@ -1,10 +1,10 @@
 import "./App.css";
-import { MilkdownEditorWrapper } from "./components/Milkdown";
+import MilkdownEditor from "./components/Milkdown";
 
 function App() {
   return (
     <>
-      <MilkdownEditorWrapper />
+      <MilkdownEditor />
     </>
   );
 }

@@ -13,8 +13,10 @@
     "@milkdown/kit": "^7.5.5",
     "@milkdown/react": "^7.5.0",
     "@milkdown/theme-nord": "^7.5.0",
+    "@tailwindcss/typography": "^0.5.15",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "tailwindcss": "^3.4.15",
     "y-websocket": "^2.0.4",
     "yjs": "^13.6.20",
     "zustand": "^5.0.1"

@@ -1,4 +1,3 @@
-import React from "react";
 import { defaultValueCtx, Editor, rootCtx } from "@milkdown/kit/core";
 import { nord } from "@milkdown/theme-nord";
 import { Milkdown, MilkdownProvider, useEditor } from "@milkdown/react";
@@ -8,27 +7,29 @@ import "@milkdown/theme-nord/style.css";
 
 const markdown = `
 # hello world
-> 마음대로 수정해보세요
+마음대로 수정해보세요
 `;
 
-const MilkdownEditor: React.FC = () => {
-  const { get } = useEditor((root) =>
-    Editor.make()
-      .config(nord)
+function MilkdownEditor() {
+  useEditor((root) => {
+    return Editor.make()
       .config((ctx) => {
         ctx.set(rootCtx, root);
         ctx.set(defaultValueCtx, markdown);
       })
-      .use(commonmark)
-  );
+      .config(nord)
+      .use(commonmark);
+  }, []);
 
   return <Milkdown />;
-};
+}
 
-export const MilkdownEditorWrapper: React.FC = () => {
+function MilkdownEditorWrapper() {
   return (
     <MilkdownProvider>
       <MilkdownEditor />
     </MilkdownProvider>
   );
-};
+}
+
+export default MilkdownEditorWrapper;
