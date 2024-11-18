@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { YjsModule } from './yjs.module';
+import { YjsModule } from './yjs/yjs.module';
+import { LoggerModule } from './logger/logger.module';
 
 @Module({
-  imports: [YjsModule],
+  imports: [YjsModule, LoggerModule],
   controllers: [AppController],
   providers: [AppService],
 })
