@@ -1,35 +1,31 @@
 import {
-  OnGatewayConnection,
-  OnGatewayDisconnect,
   WebSocketGateway,
   WebSocketServer,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Request } from 'express';
 import { Server } from 'ws';
-
-// @ts-expect-error d.ts를 제공하지 않음
+// @ts-expect-error
 import { setupWSConnection } from 'y-websocket/bin/utils';
+import { getCookie } from 'src/common/utils/cookie.util';
+import { Logger } from 'winston';
 
-@WebSocketGateway({
-  path: '/y-space',
-  cors: {
-    origin: ['http://localhost:8080', 'http://frontend:8080'],
-    credentials: true,
-  },
-  transports: ['websocket'],
-})
+@WebSocketGateway({ path: '/yjs' })
 export class YjsGateway implements OnGatewayConnection, OnGatewayDisconnect {
+  constructor() {}
+
   @WebSocketServer()
   server: Server;
 
   handleConnection(connection: WebSocket, request: Request): void {
-    const roomName = request.headers['room-name'] as string;
-    if (!roomName) {
-      throw new Error('Room name is required');
-    }
+    Logger.log('connection start');
 
-    setupWSConnection(connection, request, { roomName });
+    const docName = getCookie(request?.headers?.cookie, 'roomName');
+    setupWSConnection(connection, request, { ...(docName && { docName }) });
   }
 
-  handleDisconnect(): void {}
+  handleDisconnect(): void {
+    Logger.log('connection end');
+  }
 }

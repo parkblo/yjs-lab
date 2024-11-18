@@ -1,11 +1,9 @@
 import { Injectable } from '@nestjs/common';
-// @ts-expect-error
 import { InjectLogger } from 'nest-winston';
-import { Logger } from 'winston';
 
 @Injectable()
 export class LoggerService {
-  constructor(@InjectLogger() private readonly logger: Logger) {}
+  constructor(@InjectLogger() private readonly logger) {}
 
   log(message: string) {
     this.logger.info(message);

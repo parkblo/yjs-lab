@@ -10,7 +10,6 @@ import 'winston-daily-rotate-file';
   imports: [
     WinstonModule.forRoot({
       transports: [
-        // 콘솔 출력
         new winston.transports.Console({
           level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
           format: winston.format.combine(
