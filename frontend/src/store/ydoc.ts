@@ -1,62 +1,10 @@
 import * as Y from "yjs";
 import { WebsocketProvider } from "y-websocket";
 import { create } from "zustand";
+import { v4 as uuid } from "uuid";
+import { mockData } from "./mock.data";
 
-/**
- * 
-interface Space {
-	parent: string;
-  id: string;
-  edges: Edge[];
-  nodes: Node[];
-  rootNodeId: Node["id"];
-}
-
-interface Node {
-  id: string;
-  pointX: number;
-  pointY: number;
-  type: "note" | "url" | "image" | "subspace";
-}
-
-interface Edge {
-  from: Node["id"];
-  to: Node["id"];
-}
-
-interface Content {
-  nodeId: Node["id"];
-  type: "path" | "raw" | "space";
-  data: string;
-} */
-
-// ContextTree Y.array(Y.map, Y.map)
-// y.map의 key가 'parentNode'고 value가 space 객체인데
-// space 객체는 Y.array로 되어있어서
-// Y.array 안에는 또 Y.array가 또 있어서
-// edge, nodes
-// https://github.com/yjs/yjs/issues/106
-// Space => (HeadNode)
-// Head(1) < View Sub Space(2) < View (3)
-// Context Tree의 Node가 되는 대상 => {  }
-
-// patch => Y.Array
-// put  => string => nodeName, nodeId
-
-type Edge = { from:string, to:string }; // JSON
-type Node{
-  id: string,
-  pointX:number,  
-  pointY:number,
-  type: "note" | "url" | "image" | "subspace";
-}
-type SharedSpace = {
-  edges: Y.Array<Edge>; 
-  nodes: Y.Array<Node>; 
-};
- // ->type parentNodeId = uuid;
-type SharedContextTree = Y.Map<parentContextId, ShardSpace>; 
-
+// ->type parentNodeId = uuid;
 // SharedContextTree >SharedSpace > Edge, Node
 interface AwarenessUser {
   name: string;
@@ -69,10 +17,53 @@ interface AwarenessState {
 // [*] Awareness -> (같은 방에 있는) 연결된 사람마다 가진 개인 상태 정보
 // [-] YDoc -> 공동으로 편집되어야 하는 문서정보
 
-export const createYDoc = (roomName: string) => {
+// type Node = {
+//   id: string;
+//   pointX: number;
+//   pointY: number;
+//   type: "note" | "url" | "image" | "subspace";
+// };
+
+/*
+Y.doc {
+  "context": Y.Map  {
+    "SpaceId": string
+    "parentContextId": string
+    "nodes": Y.Array [
+      object { pointX, pointY, id, type },
+      object { pointX, pointY, id, type },
+      ...
+    ]
+    "edges": Y.Array [
+      object { from: uuid, to: uuid },
+      object { from: uuid, to: uuid },
+      ...
+    ]
+  }
+}
+*/
+
+// TODO: REST API 통해서 최초 데이터 받아오기 -> data
+export const createYDoc = (roomName: string, data: any) => {
   const ydoc = new Y.Doc();
+  const yContext = ydoc.getMap("context");
+  const yNodes = new Y.Array();
+  const yEdges = new Y.Array();
+  yContext.set("nodes", yNodes);
+  yContext.set("edge", yEdges);
+  yNodes.push(data.nodes);
+  yEdges.push(data.edges);
+
+  // TODO: Context ID 관련 처리
+
   const provider = new WebsocketProvider("ws://backend:3001", roomName, ydoc);
-  const state: AwarenessState = {};
+  const state: AwarenessState = {
+    user: {
+      name: uuid(),
+      color: "#" + Math.floor(Math.random() * 0xfffff).toString(16),
+      cursor: { x: 0, y: 0 },
+    },
+  };
 
   provider.awareness.setLocalState(state);
 
@@ -85,28 +76,18 @@ type YDocStoreState = {
 };
 
 type YDocStoreActions = {
-  initYDoc: (roomName: string) => void;
+  // initYDoc: (roomName: string) => void;
   destroyConnection: () => void;
 };
 
-const defaultYDoc = createYDoc("default-room");
+const defaultYDoc = createYDoc("default-room", mockData);
 
-export const useYDocStore = create<YDocStoreState & YDocStoreActions>(
-  (set) => ({
-    ydoc: defaultYDoc.ydoc,
-    provider: defaultYDoc.provider,
+export const useYDocStore = create<YDocStoreState & YDocStoreActions>(() => ({
+  ydoc: defaultYDoc.ydoc,
+  provider: defaultYDoc.provider,
 
-    initYDoc: (roomName: string) => {
-      const currentState = useYDocStore.getState();
-      currentState.provider.destroy();
-
-      const { ydoc, provider } = createYDoc(roomName);
-      set({ ydoc, provider });
-    },
-
-    destroyConnection: () => {
-      const { provider } = useYDocStore.getState();
-      provider.destroy();
-    },
-  })
-);
+  destroyConnection: () => {
+    const { provider } = useYDocStore.getState();
+    provider.destroy();
+  },
+}));
