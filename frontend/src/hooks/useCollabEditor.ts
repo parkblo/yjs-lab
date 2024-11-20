@@ -43,9 +43,13 @@ export const useCollabEditor = ({
     // });
 
     let collabService: CollabService;
-    editor.action((ctx: Ctx) => {
-      collabService = ctx.get(collabServiceCtx);
-      collabService.bindDoc(doc).setAwareness(wsProvider.awareness).connect();
+
+    //NOTE - flushSync가 lifecycle 내에서 발생하는 것을 방지하기 위해 settimeout으로 묶어서 micro task로 취급되게 함
+    setTimeout(() => {
+      editor.action((ctx: Ctx) => {
+        collabService = ctx.get(collabServiceCtx);
+        collabService.bindDoc(doc).setAwareness(wsProvider.awareness).connect();
+      });
     });
 
     return () => {
