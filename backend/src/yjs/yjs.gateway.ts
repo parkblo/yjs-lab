@@ -3,68 +3,58 @@ import {
   WebSocketServer,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  OnGatewayInit,
 } from '@nestjs/websockets';
 import { Request } from 'express';
-import { Server } from 'ws';
-import { setupWSConnection } from 'y-websocket/bin/utils';
+import { Server } from 'socket.io';
+import { YSocketIO } from 'y-socket.io/dist/server';
 import * as Y from 'yjs';
 @WebSocketGateway(3001)
-export class YjsGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class YjsGateway
+  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
+{
+  private ysocketio: YSocketIO;
   constructor() {}
 
   @WebSocketServer()
   server: Server;
 
-  async handleConnection(connection: WebSocket, request: Request) {
-    console.log('connection start');
-
-    const urlParts = request.url.split('/');
-    const urlType = urlParts[urlParts.length - 2];
-    const id = urlParts[urlParts.length - 1];
-
-    console.log(`type is ${urlType} urlId is ${id}`);
-    if ((urlType !== 'space' && urlType !== 'note') || id !== '123') {
-      console.log(`invalid`);
-      connection.close();
-      return;
+  afterInit() {
+    if (!this.server) {
+      this.server = new Server();
     }
 
-    console.log(`valid`);
-    let initializeData;
-    if (urlType === `space`) {
-      initializeData = initializeByTree(id);
-    } else {
-      initializeData = initializeByNote(id);
-    }
-    connection.send(initializeData);
-    setupWSConnection(connection, request, {
-      docName: id,
+    this.ysocketio = new YSocketIO(this.server);
+    this.ysocketio.on('', (doc: Y.Doc) => {
+      const nodes = doc.getMap('nodes');
+      const edges = doc.getMap('edges');
+      const note = doc.getXmlFragment('note');
+
+      note.observeDeep(() => {
+        //이 부분은 text editor 코드 받아서 해보면 될 것 같다.
+      });
+      nodes.observe(() => {
+        const nodes = Object.values(doc.getMap('nodes').toJSON);
+        nodes.forEach((node) => {
+          console.log(node);
+          // 그냥 이대로 DB에 넣으면 되는거같다.
+          // 전체 탐색하는 문제가 있는데 특정 ID가 변경되었을 때 변경되었음을 어떻게 알 수 있을까
+        });
+      });
+      edges.observe(() => {
+        const edges = Object.values(doc.getMap('edges').toJSON);
+        edges.forEach((edge) => {
+          console.log(edge);
+          // 그냥 이대로 DB에 넣으면 되는거같다.
+          // 전체 탐색하는 문제가 있는데 특정 ID가 변경되었을 때 변경되었음을 어떻게 알 수 있을까
+        });
+      });
     });
   }
-
-  handleDisconnect(client: any) {}
+  handleConnection() {
+    console.log('연결 성공');
+  }
+  handleDisconnect() {
+    console.log('연결 실패');
+  }
 }
-
-function initializeByTree(roomName: string) {
-  let ydoc = new Y.Doc();
-  const ySpace = ydoc.getMap('space');
-  ySpace.set('contextNode1', {
-    id: 'node1',
-    parent: null,
-    nodes: [],
-    edges: [],
-  });
-  return Y.encodeStateAsUpdate(ydoc);
-}
-function initializeByNote(roomName: string) {
-  let ydoc = new Y.Doc();
-  return Y.encodeStateAsUpdate(ydoc);
-}
-function saveUpdateToDatabase(docName: string, update: Uint8Array) {
-  Buffer.from(update);
-}
-
-function getUpdatesFromDatabase(docName: string) {
-  return [];
-}
-function loadDocumentFromDatabase(docName: string) {}
