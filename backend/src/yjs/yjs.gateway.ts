@@ -7,7 +7,7 @@ import {
 import { Request } from 'express';
 import { Server } from 'ws';
 import { setupWSConnection } from 'y-websocket/bin/utils';
-
+import * as Y from 'yjs';
 @WebSocketGateway(3001)
 export class YjsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor() {}
@@ -15,20 +15,56 @@ export class YjsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
-  handleConnection(connection: WebSocket, request: Request): void {
+  async handleConnection(connection: WebSocket, request: Request) {
     console.log('connection start');
 
-    const test = request.url.split('/').pop();
-    if (test === '123') {
-      setupWSConnection(connection, request, { docName: test });
-    } else connection.close(1000, 'werwerwe');
+    const urlParts = request.url.split('/');
+    const urlType = urlParts[urlParts.length - 2];
+    const id = urlParts[urlParts.length - 1];
 
-    connection.addEventListener('message', (e) => {
-      const data = e.data;
-      console.log(`addEventListener: from client message: ${data}`);
+    console.log(`type is ${urlType} urlId is ${id}`);
+    if ((urlType !== 'space' && urlType !== 'note') || id !== '123') {
+      console.log(`invalid`);
+      connection.close();
+      return;
+    }
+
+    console.log(`valid`);
+    let initializeData;
+    if (urlType === `space`) {
+      initializeData = initializeByTree(id);
+    } else {
+      initializeData = initializeByNote(id);
+    }
+    connection.send(initializeData);
+    setupWSConnection(connection, request, {
+      docName: id,
     });
   }
-  handleDisconnect(): void {
-    console.log('connection end');
-  }
+
+  handleDisconnect(client: any) {}
 }
+
+function initializeByTree(roomName: string) {
+  let ydoc = new Y.Doc();
+  const ySpace = ydoc.getMap('space');
+  ySpace.set('contextNode1', {
+    id: 'node1',
+    parent: null,
+    nodes: [],
+    edges: [],
+  });
+  return Y.encodeStateAsUpdate(ydoc);
+}
+function initializeByNote(roomName: string) {
+  let ydoc = new Y.Doc();
+  return Y.encodeStateAsUpdate(ydoc);
+}
+function saveUpdateToDatabase(docName: string, update: Uint8Array) {
+  Buffer.from(update);
+}
+
+function getUpdatesFromDatabase(docName: string) {
+  return [];
+}
+function loadDocumentFromDatabase(docName: string) {}
