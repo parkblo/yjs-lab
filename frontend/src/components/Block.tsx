@@ -29,7 +29,7 @@ export const BlockView = () => {
   return (
     <div
       ref={ref}
-      className="absolute w-6 bg-slate-200 rounded hover:bg-slate-300 cursor-grab"
+      className="absolute w-4 bg-slate-100 rounded hover:bg-slate-300 cursor-grab"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -37,7 +37,7 @@ export const BlockView = () => {
         viewBox="0 0 24 24"
         strokeWidth={1.5}
         stroke="currentColor"
-        className="w-6 h-6"
+        className="w-4 h-6"
       >
         <path
           strokeLinecap="round"

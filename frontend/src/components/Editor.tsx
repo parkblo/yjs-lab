@@ -1,44 +1,19 @@
-import { defaultValueCtx, Editor, rootCtx } from "@milkdown/kit/core";
-import { nord } from "@milkdown/theme-nord";
-import { Milkdown, MilkdownProvider, useEditor } from "@milkdown/react";
-import { commonmark } from "@milkdown/kit/preset/commonmark";
+import { Milkdown, MilkdownProvider } from "@milkdown/react";
 import * as Y from "yjs";
 import { WebsocketProvider } from "y-websocket";
-import { collab, collabServiceCtx } from "@milkdown/plugin-collab";
+import { CollabService, collabServiceCtx } from "@milkdown/plugin-collab";
 import { useEffect } from "react";
-import { block } from "@milkdown/kit/plugin/block";
-
 import "@milkdown/theme-nord/style.css";
 import { BlockView } from "./Block";
-import {
-  ProsemirrorAdapterProvider,
-  usePluginViewFactory,
-} from "@prosemirror-adapter/react";
-import { cursor } from "@milkdown/kit/plugin/cursor";
-
-const markdown = "blah";
+import { ProsemirrorAdapterProvider } from "@prosemirror-adapter/react";
+import { useEditorConfig } from "../hooks/useEditorConfig";
 
 function MilkdownEditor() {
   // 에디터 기본 설정
-  const pluginViewFactory = usePluginViewFactory();
-
-  const { loading, get } = useEditor((root) => {
-    return Editor.make()
-      .config((ctx) => {
-        ctx.set(rootCtx, root);
-        ctx.set(defaultValueCtx, markdown);
-        ctx.set(block.key, {
-          view: pluginViewFactory({
-            component: BlockView,
-          }),
-        });
-      })
-      .config(nord)
-      .use(commonmark)
-      .use(block)
-      .use(cursor)
-      .use(collab);
-  }, []);
+  const { loading, get } = useEditorConfig({
+    BlockView,
+    initialMarkdown: "# Milkdown Test",
+  });
 
   // collab 기능 연결
   useEffect(() => {
@@ -48,19 +23,40 @@ function MilkdownEditor() {
     if (!editor) return;
 
     const doc = new Y.Doc();
-    const provider = new WebsocketProvider(
-      "ws://localhost:3000/",
-      "ytest",
-      doc
+    const wsProvider = new WebsocketProvider(
+      "wss://demos.yjs.dev/ws",
+      "milkdown",
+      doc,
+      { connect: true }
     );
 
-    // editor.action((ctx) => {
-    //   const collabService = ctx.get(collabServiceCtx);
-    //   collabService.bindDoc(doc).setAwareness(provider.awareness).connect();
+    wsProvider.once("synced", async (isSynced: boolean) => {
+      if (isSynced) {
+        console.log("성공적으로 연결됨: " + wsProvider.url);
+      }
+    });
+
+    /*NOTE - websocket 연결 상태를 가져와서 다룰 수 있음.
+    paylod.status
+    connecting: WebSocket 서버에 연결 시도 중
+    connected: 서버와 연결됨
+    disconnected: 서버와 연결이 끊어짐
+    syncing: 다른 클라이언트와 데이터 동기화 중
+    synced: 모든 클라이언트와 데이터가 동기화됨
+    */
+    // wsProvider.on("status", (payload: { status: string }) => {
+    //   // ex) this.doms.status.textContent = payload.status;
     // });
 
+    let collabService: CollabService;
+    editor.action((ctx) => {
+      collabService = ctx.get(collabServiceCtx);
+      collabService.bindDoc(doc).setAwareness(wsProvider.awareness).connect();
+    });
+
     return () => {
-      provider.destroy();
+      collabService?.disconnect();
+      wsProvider?.disconnect();
     };
   }, [loading]);
 
