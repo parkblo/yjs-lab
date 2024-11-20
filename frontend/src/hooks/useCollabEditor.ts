@@ -4,6 +4,7 @@ import { WebsocketProvider } from "y-websocket";
 import { CollabService, collabServiceCtx } from "@milkdown/plugin-collab";
 import { Editor } from "@milkdown/kit/core";
 import { Ctx } from "@milkdown/kit/ctx";
+import { SocketIOProvider } from "y-socket.io";
 
 interface UseCollabEditorProps {
   editor: Editor | null;
@@ -20,13 +21,11 @@ export const useCollabEditor = ({
     if (!editor) return;
 
     const doc = new Y.Doc();
-    const wsProvider = new WebsocketProvider(websocketUrl, roomName, doc, {
-      connect: true,
-    });
+    const provider = new SocketIOProvider(websocketUrl, roomName, doc, {});
 
-    wsProvider.once("synced", async (isSynced: boolean) => {
+    provider.once("synced", async (isSynced: boolean) => {
       if (isSynced) {
-        console.log("성공적으로 연결됨: " + wsProvider.url);
+        console.log("성공적으로 연결됨: " + provider.url);
       }
     });
 
@@ -38,19 +37,19 @@ export const useCollabEditor = ({
     syncing: 다른 클라이언트와 데이터 동기화 중
     synced: 모든 클라이언트와 데이터가 동기화됨
     */
-    // wsProvider.on("status", (payload: { status: string }) => {
+    // provider.on("status", (payload: { status: string }) => {
     //   // ex) this.doms.status.textContent = payload.status;
     // });
 
     let collabService: CollabService;
     editor.action((ctx: Ctx) => {
       collabService = ctx.get(collabServiceCtx);
-      collabService.bindDoc(doc).setAwareness(wsProvider.awareness).connect();
+      collabService.bindDoc(doc).setAwareness(provider.awareness).connect();
     });
 
     return () => {
       collabService?.disconnect();
-      wsProvider?.disconnect();
+      provider?.disconnect();
     };
   }, [editor, websocketUrl, roomName]);
 };
