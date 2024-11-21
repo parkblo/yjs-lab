@@ -42,9 +42,12 @@ export const useCollabEditor = ({
     // });
 
     let collabService: CollabService;
-    editor.action((ctx: Ctx) => {
-      collabService = ctx.get(collabServiceCtx);
-      collabService.bindDoc(doc).setAwareness(provider.awareness).connect();
+
+    setTimeout(() => {
+      editor.action((ctx: Ctx) => {
+        collabService = ctx.get(collabServiceCtx);
+        collabService.bindDoc(doc).setAwareness(provider.awareness).connect();
+      });
     });
 
     return () => {
